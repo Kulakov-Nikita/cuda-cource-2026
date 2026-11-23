@@ -52,21 +52,15 @@ def check_result(path, alpha, x_values, y_values):
         expected_relu = x_values[i] if x_values[i] > 0.0 else 0.0
 
         if got_add != expected_add:
-            raise RuntimeError(
-                f"Add, элемент {i}: ожидалось {expected_add}, получено {got_add}"
-            )
+            raise RuntimeError(f"Add, элемент {i}: ожидалось {expected_add}, получено {got_add}")
 
         if got_relu != expected_relu:
-            raise RuntimeError(
-                f"ReLU, элемент {i}: ожидалось {expected_relu}, получено {got_relu}"
-            )
+            raise RuntimeError(f"ReLU, элемент {i}: ожидалось {expected_relu}, получено {got_relu}")
 
         tolerance = 1e-5 + 1e-5 * abs(expected_saxpy)
         if abs(got_saxpy - expected_saxpy) > tolerance:
-            raise RuntimeError(
-                f"SAXPY, элемент {i}: ожидалось {expected_saxpy}, "
-                f"получено {got_saxpy}"
-            )
+            message = f"SAXPY, элемент {i}: ожидалось {expected_saxpy}, получено {got_saxpy}"
+            raise RuntimeError(message)
 
 
 def main():

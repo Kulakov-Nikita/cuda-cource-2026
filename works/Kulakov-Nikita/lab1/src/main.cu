@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-void checkCuda(cudaError_t error, const char* operation) {
+void checkCuda(cudaError_t error, const char *operation) {
     if (error != cudaSuccess) {
         throw std::runtime_error(std::string(operation) + ": " + cudaGetErrorString(error));
     }
@@ -20,8 +20,7 @@ void checkCuda(cudaError_t error, const char* operation) {
 
 #define CUDA_CHECK(call) checkCuda((call), #call)
 
-__global__ void addKernel(const float* x, const float* y, float* result, int n,
-                          bool noncoalesced) {
+__global__ void addKernel(const float *x, const float *y, float *result, int n, bool noncoalesced) {
     long long index;
 
     if (noncoalesced) {
@@ -35,8 +34,8 @@ __global__ void addKernel(const float* x, const float* y, float* result, int n,
     }
 }
 
-__global__ void saxpyKernel(const float* x, const float* y, float* result, float alpha,
-                            int n, bool noncoalesced) {
+__global__ void saxpyKernel(const float *x, const float *y, float *result, float alpha, int n,
+                            bool noncoalesced) {
     long long index;
 
     if (noncoalesced) {
@@ -50,7 +49,7 @@ __global__ void saxpyKernel(const float* x, const float* y, float* result, float
     }
 }
 
-__global__ void reluKernel(const float* x, float* result, int n, bool noncoalesced) {
+__global__ void reluKernel(const float *x, float *result, int n, bool noncoalesced) {
     long long index;
 
     if (noncoalesced) {
@@ -75,20 +74,19 @@ struct Options {
 };
 
 void printHelp() {
-    std::cout
-        << "Использование:\n"
-        << "  ./build/submission --input <файл> --output <файл> [параметры]\n\n"
-        << "Параметры:\n"
-        << "  --input <файл>       Входной файл: N alpha, затем N пар x y\n"
-        << "  --output <файл>      Выходной файл: add saxpy relu в каждой строке\n"
-        << "  --mode <режим>       coalesced или noncoalesced (по умолчанию coalesced)\n"
-        << "  --block <число>      Потоков в блоке, от 1 до 1024 (по умолчанию 256)\n"
-        << "  --repeat <число>     Число измерений, от 1 до 1000 (по умолчанию 10)\n"
-        << "  --warmup <число>     Число прогревочных запусков (по умолчанию 3)\n"
-        << "  --help               Показать эту справку\n";
+    std::cout << "Использование:\n"
+              << "  ./build/submission --input <файл> --output <файл> [параметры]\n\n"
+              << "Параметры:\n"
+              << "  --input <файл>       Входной файл: N alpha, затем N пар x y\n"
+              << "  --output <файл>      Выходной файл: add saxpy relu в каждой строке\n"
+              << "  --mode <режим>       coalesced или noncoalesced (по умолчанию coalesced)\n"
+              << "  --block <число>      Потоков в блоке, от 1 до 1024 (по умолчанию 256)\n"
+              << "  --repeat <число>     Число измерений, от 1 до 1000 (по умолчанию 10)\n"
+              << "  --warmup <число>     Число прогревочных запусков (по умолчанию 3)\n"
+              << "  --help               Показать эту справку\n";
 }
 
-int parsePositiveInt(const std::string& value, const std::string& name, int minValue,
+int parsePositiveInt(const std::string &value, const std::string &name, int minValue,
                      int maxValue) {
     size_t used = 0;
     int result = std::stoi(value, &used);
@@ -100,7 +98,7 @@ int parsePositiveInt(const std::string& value, const std::string& name, int minV
     return result;
 }
 
-Options parseArgs(int argc, char** argv) {
+Options parseArgs(int argc, char **argv) {
     Options options;
 
     for (int i = 1; i < argc; ++i) {
@@ -108,8 +106,8 @@ Options parseArgs(int argc, char** argv) {
 
         if (arg == "--help") {
             options.help = true;
-        } else if (arg == "--input" || arg == "--output" || arg == "--mode" ||
-                   arg == "--block" || arg == "--repeat" || arg == "--warmup") {
+        } else if (arg == "--input" || arg == "--output" || arg == "--mode" || arg == "--block" ||
+                   arg == "--repeat" || arg == "--warmup") {
             if (i + 1 >= argc) {
                 throw std::invalid_argument("Не указано значение для " + arg);
             }
@@ -156,7 +154,7 @@ struct InputData {
     std::vector<float> y;
 };
 
-InputData readInput(const std::string& path) {
+InputData readInput(const std::string &path) {
     std::ifstream file(path);
     file.imbue(std::locale::classic());
 
@@ -212,14 +210,14 @@ struct Timings {
     double full = 0.0;
 };
 
-Timings runOnce(const InputData& input, const Options& options, cudaEvent_t start,
-                cudaEvent_t stop, std::vector<float>& addResult,
-                std::vector<float>& saxpyResult, std::vector<float>& reluResult) {
-    float* deviceX = nullptr;
-    float* deviceY = nullptr;
-    float* deviceAdd = nullptr;
-    float* deviceSaxpy = nullptr;
-    float* deviceRelu = nullptr;
+Timings runOnce(const InputData &input, const Options &options, cudaEvent_t start, cudaEvent_t stop,
+                std::vector<float> &addResult, std::vector<float> &saxpyResult,
+                std::vector<float> &reluResult) {
+    float *deviceX = nullptr;
+    float *deviceY = nullptr;
+    float *deviceAdd = nullptr;
+    float *deviceSaxpy = nullptr;
+    float *deviceRelu = nullptr;
 
     Timings timings;
     const size_t bytes = static_cast<size_t>(input.n) * sizeof(float);
@@ -229,11 +227,11 @@ Timings runOnce(const InputData& input, const Options& options, cudaEvent_t star
     auto fullStart = std::chrono::steady_clock::now();
 
     try {
-        CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&deviceX), bytes));
-        CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&deviceY), bytes));
-        CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&deviceAdd), bytes));
-        CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&deviceSaxpy), bytes));
-        CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&deviceRelu), bytes));
+        CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&deviceX), bytes));
+        CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&deviceY), bytes));
+        CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&deviceAdd), bytes));
+        CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&deviceSaxpy), bytes));
+        CUDA_CHECK(cudaMalloc(reinterpret_cast<void **>(&deviceRelu), bytes));
 
         timings.h2d = measureEvents(start, stop, [&]() {
             CUDA_CHECK(cudaMemcpy(deviceX, input.x.data(), bytes, cudaMemcpyHostToDevice));
@@ -242,24 +240,21 @@ Timings runOnce(const InputData& input, const Options& options, cudaEvent_t star
 
         timings.kernel = measureEvents(start, stop, [&]() {
             addKernel<<<blocks, options.block>>>(deviceX, deviceY, deviceAdd, input.n,
-                                                  noncoalesced);
+                                                 noncoalesced);
             CUDA_CHECK(cudaGetLastError());
 
-            saxpyKernel<<<blocks, options.block>>>(deviceX, deviceY, deviceSaxpy,
-                                                    input.alpha, input.n, noncoalesced);
+            saxpyKernel<<<blocks, options.block>>>(deviceX, deviceY, deviceSaxpy, input.alpha,
+                                                   input.n, noncoalesced);
             CUDA_CHECK(cudaGetLastError());
 
-            reluKernel<<<blocks, options.block>>>(deviceX, deviceRelu, input.n,
-                                                   noncoalesced);
+            reluKernel<<<blocks, options.block>>>(deviceX, deviceRelu, input.n, noncoalesced);
             CUDA_CHECK(cudaGetLastError());
         });
 
         timings.d2h = measureEvents(start, stop, [&]() {
             CUDA_CHECK(cudaMemcpy(addResult.data(), deviceAdd, bytes, cudaMemcpyDeviceToHost));
-            CUDA_CHECK(cudaMemcpy(saxpyResult.data(), deviceSaxpy, bytes,
-                                  cudaMemcpyDeviceToHost));
-            CUDA_CHECK(cudaMemcpy(reluResult.data(), deviceRelu, bytes,
-                                  cudaMemcpyDeviceToHost));
+            CUDA_CHECK(cudaMemcpy(saxpyResult.data(), deviceSaxpy, bytes, cudaMemcpyDeviceToHost));
+            CUDA_CHECK(cudaMemcpy(reluResult.data(), deviceRelu, bytes, cudaMemcpyDeviceToHost));
         });
 
         CUDA_CHECK(cudaFree(deviceX));
@@ -273,17 +268,21 @@ Timings runOnce(const InputData& input, const Options& options, cudaEvent_t star
         CUDA_CHECK(cudaFree(deviceRelu));
         deviceRelu = nullptr;
     } catch (...) {
-        if (deviceX != nullptr) cudaFree(deviceX);
-        if (deviceY != nullptr) cudaFree(deviceY);
-        if (deviceAdd != nullptr) cudaFree(deviceAdd);
-        if (deviceSaxpy != nullptr) cudaFree(deviceSaxpy);
-        if (deviceRelu != nullptr) cudaFree(deviceRelu);
+        if (deviceX != nullptr)
+            cudaFree(deviceX);
+        if (deviceY != nullptr)
+            cudaFree(deviceY);
+        if (deviceAdd != nullptr)
+            cudaFree(deviceAdd);
+        if (deviceSaxpy != nullptr)
+            cudaFree(deviceSaxpy);
+        if (deviceRelu != nullptr)
+            cudaFree(deviceRelu);
         throw;
     }
 
     auto fullEnd = std::chrono::steady_clock::now();
-    timings.full =
-        std::chrono::duration<double, std::milli>(fullEnd - fullStart).count();
+    timings.full = std::chrono::duration<double, std::milli>(fullEnd - fullStart).count();
 
     return timings;
 }
@@ -299,9 +298,8 @@ double median(std::vector<double> values) {
     return values[middle];
 }
 
-void writeOutput(const std::string& path, const std::vector<float>& addResult,
-                 const std::vector<float>& saxpyResult,
-                 const std::vector<float>& reluResult) {
+void writeOutput(const std::string &path, const std::vector<float> &addResult,
+                 const std::vector<float> &saxpyResult, const std::vector<float> &reluResult) {
     std::ofstream file(path);
     file.imbue(std::locale::classic());
 
@@ -320,12 +318,12 @@ void writeOutput(const std::string& path, const std::vector<float>& addResult,
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     Options options;
 
     try {
         options = parseArgs(argc, argv);
-    } catch (const std::exception& error) {
+    } catch (const std::exception &error) {
         std::cerr << "Ошибка аргументов: " << error.what() << '\n';
         printHelp();
         return 2;
@@ -340,7 +338,7 @@ int main(int argc, char** argv) {
 
     try {
         input = readInput(options.input);
-    } catch (const std::exception& error) {
+    } catch (const std::exception &error) {
         std::cerr << "Ошибка входных данных: " << error.what() << '\n';
         return 2;
     }
@@ -350,7 +348,7 @@ int main(int argc, char** argv) {
             writeOutput(options.output, {}, {}, {});
             std::cout << "N=0: создан пустой выходной файл, CUDA-ядра не запускались.\n";
             return 0;
-        } catch (const std::exception& error) {
+        } catch (const std::exception &error) {
             std::cerr << "Ошибка: " << error.what() << '\n';
             return 1;
         }
@@ -397,9 +395,8 @@ int main(int argc, char** argv) {
         std::cout << "H2D: " << median(h2dTimes) << " ms\n";
         std::cout << "Kernel (3 ядра): " << median(kernelTimes) << " ms\n";
         std::cout << "D2H: " << median(d2hTimes) << " ms\n";
-        std::cout << "Полный цикл (с cudaMalloc и cudaFree): " << median(fullTimes)
-                  << " ms\n";
-    } catch (const std::exception& error) {
+        std::cout << "Полный цикл (с cudaMalloc и cudaFree): " << median(fullTimes) << " ms\n";
+    } catch (const std::exception &error) {
         std::cerr << "Ошибка выполнения CUDA: " << error.what() << '\n';
         return 1;
     }
